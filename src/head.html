@@ -1,0 +1,151 @@
+<title>Jungle Quest</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@500;700&family=Alegreya:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: illustrated board left, stone-tablet control panel right; stacks on phones. Single dark jungle look. */
+:root{
+  --bg:#06120b; --bg2:#0d2417; --moss:#1f4a2c; --leaf:#4a9a42; --stone:#cdbb93; --stone-d:#6b5e43;
+  --slab:#2a2a1f; --gold:#e6bb58; --gold-d:#8d6b25; --ember:#d9583b; --sky:#4aa3d8; --emerald:#34e8a0; --ink:#f2e9cf; --ink-d:#b9ad8a;
+  --f-display:'Cinzel Decorative','Cinzel',Georgia,serif; --f-ui:'Cinzel',Georgia,serif; --f-body:'Alegreya',Georgia,serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:radial-gradient(120% 90% at 50% 0%,#12331f 0%,var(--bg) 70%) fixed,var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.4;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px 24px}
+.app{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+header{display:flex;align-items:baseline;justify-content:center;gap:14px;flex-wrap:wrap;text-align:center}
+h1{margin:0;font-family:var(--f-display);font-weight:900;font-size:clamp(26px,4.4vw,44px);letter-spacing:.06em;
+  background:linear-gradient(#fff2c0,#e6bb58 55%,#a87a22);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 0 #3a2a08) drop-shadow(0 6px 14px #000a)}
+header span{font-family:var(--f-ui);letter-spacing:.32em;text-transform:uppercase;font-size:12px;color:var(--ink-d)}
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+.board-wrap{position:relative;justify-self:center;width:min(100%,calc(100vh - 110px));min-width:min(100%,300px);aspect-ratio:1;border-radius:14px;
+  box-shadow:0 0 0 2px var(--gold-d),0 0 0 6px #1b1407,0 18px 50px #000c;overflow:hidden;background:#0a2013}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:manipulation}
+#toast{position:absolute;left:50%;top:12px;transform:translateX(-50%);max-width:88%;padding:8px 18px;border-radius:999px;font-family:var(--f-ui);font-size:14px;
+  letter-spacing:.06em;background:#10180ee6;border:1px solid var(--gold-d);color:var(--ink);pointer-events:none;opacity:0;transition:opacity .25s;text-align:center}
+#toast.on{opacity:1}
+.panel{display:flex;flex-direction:column;gap:12px;min-width:0}
+.tablet{background:linear-gradient(160deg,#2f2d22,#1d1c15 60%,#26241b);border:1px solid #5b4a22;border-radius:10px;padding:12px 14px;
+  box-shadow:inset 0 1px 0 #ffffff14,inset 0 0 40px #0008,0 8px 22px #0008}
+.tablet h2{margin:0 0 8px;font-family:var(--f-ui);font-size:13px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold)}
+#players{display:flex;flex-direction:column;gap:6px}
+.pl{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:6px 8px;border-radius:8px;border:1px solid transparent;transition:background .2s,border-color .2s}
+.pl.turn{background:#ffffff10;border-color:var(--c)}
+.pl i{width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff9,transparent 45%),var(--c);box-shadow:0 0 0 2px #0009,0 0 0 3px var(--c)}
+.pl b{font-family:var(--f-ui);font-weight:700;font-size:15px;display:block}
+.pl small{color:var(--ink-d);font-size:14px}
+.pl em{font-style:normal;font-family:var(--f-ui);font-size:12px;letter-spacing:.06em;color:var(--gold);text-align:right}
+.diceRow{display:flex;gap:14px;align-items:center}
+#die{width:84px;height:84px;flex:none;border-radius:16px;background:linear-gradient(145deg,#e1d3ac,#a99869);box-shadow:inset 0 0 0 3px #5c4f31,inset 0 0 18px #0006,0 6px 14px #000a;
+  display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:12px;gap:2px}
+#die span{border-radius:50%;background:#2a2417;box-shadow:inset 0 2px 3px #000b,0 1px 0 #fff4;transform:scale(0);transition:transform .12s}
+#die span.on{transform:scale(.78)}
+#die.roll{animation:shake .5s}
+@keyframes shake{0%{transform:rotate(0)}20%{transform:rotate(-14deg) translateY(-6px)}45%{transform:rotate(12deg)}70%{transform:rotate(-8deg) translateY(-3px)}100%{transform:rotate(0)}}
+button{font-family:var(--f-ui);font-weight:700;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;color:#2a1b04;border:0;border-radius:8px;padding:12px 18px;font-size:14px;
+  background:linear-gradient(#f6d77f,#d2a23d 60%,#a8791f);box-shadow:0 0 0 1px #4a3508,inset 0 1px 0 #fff8,0 4px 0 #6b4b0f,0 8px 14px #0008;transition:transform .08s,filter .15s}
+button:hover:not(:disabled){filter:brightness(1.08)}
+button:active:not(:disabled){transform:translateY(3px);box-shadow:0 0 0 1px #4a3508,inset 0 1px 0 #fff8,0 1px 0 #6b4b0f}
+button:disabled{filter:grayscale(.8) brightness(.6);cursor:default}
+button.ghost{background:linear-gradient(#3b3929,#25241a);color:var(--ink);box-shadow:0 0 0 1px #6b5a2c,0 3px 0 #0b0a06}
+button:focus-visible,.opt:focus-visible{outline:3px solid var(--emerald);outline-offset:2px}
+#say{margin:10px 0 0;min-height:2.6em;color:var(--ink-d);font-style:italic}
+#log{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;max-height:210px;overflow:auto;font-size:15px}
+#log li{padding-left:12px;border-left:3px solid var(--c,#555);color:var(--ink-d)}
+#log li:first-child{color:var(--ink)}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;font-size:14px;color:var(--ink-d)}
+.legend div{display:flex;gap:8px;align-items:center}
+.legend canvas{position:static;width:22px;height:22px;flex:none}
+.ov{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+  background:radial-gradient(80% 80% at 50% 40%,#0b2a1acc,#020a06f2);animation:fade .35s}
+.ov[hidden]{display:none}
+@keyframes fade{from{opacity:0}}
+.card{width:min(560px,100%);max-height:100%;overflow:auto;text-align:center;padding:26px 24px 22px;border-radius:14px;position:relative;
+  background:radial-gradient(120% 90% at 50% 0%,#3a3626,#1b1a13 70%);border:2px solid var(--gold-d);box-shadow:0 0 0 5px #120d04,0 0 0 6px #6d5420,0 24px 70px #000;animation:rise .4s cubic-bezier(.2,1.2,.4,1)}
+@keyframes rise{from{transform:translateY(24px) scale(.94);opacity:0}}
+.card h3{margin:0 0 6px;font-family:var(--f-display);font-size:clamp(22px,4vw,30px);color:var(--gold);letter-spacing:.04em}
+.card p{margin:8px 0 16px;font-size:19px}
+.card .big{font-size:54px;line-height:1;margin:2px 0 6px;filter:drop-shadow(0 4px 8px #000)}
+.opts{display:grid;gap:8px;margin:12px 0 4px}
+.opt{font-family:var(--f-body);font-weight:600;font-size:18px;letter-spacing:0;text-transform:none;text-align:left;color:var(--ink);padding:12px 16px;background:linear-gradient(#37352a,#23221a);box-shadow:0 0 0 1px #6b5a2c,0 3px 0 #0b0a06}
+.opt.good{background:linear-gradient(#2d8a54,#17582f);box-shadow:0 0 0 1px #5fe39a,0 3px 0 #06210f}
+.opt.bad{background:linear-gradient(#a8402c,#6a2012);box-shadow:0 0 0 1px #e8806a,0 3px 0 #2a0a04}
+.setup{display:grid;gap:8px;margin:14px 0}
+.srow{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;text-align:left}
+.srow i{width:26px;height:26px;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px #000a,0 0 0 3px var(--c)}
+.srow button{padding:7px 12px;font-size:12px}
+.cnt{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px 0}
+.cnt button.sel,.srow button.sel{background:linear-gradient(#7de8b6,#2fae6e 60%,#157544);color:#052414;box-shadow:0 0 0 1px #0b4a2b,0 4px 0 #0a3a21}
+.rules{font-size:16px;color:var(--ink-d);text-align:left;margin:12px 0 4px;padding-left:20px}
+.rules li{margin:3px 0}
+.reelrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 6px}
+.reel{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 4px;border-radius:10px;background:#1b1a13;border:1px solid #4a3f22;color:var(--ink-d);transition:transform .08s,background .08s,color .08s,box-shadow .08s}
+.reel b{font-size:30px;line-height:1;font-family:var(--f-ui)}
+.reel span{font-family:var(--f-ui);font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+.reel.on{background:#37331f;color:var(--c);border-color:var(--c);transform:translateY(-3px)}
+.reel.lock{background:var(--c);color:#1a1405;border-color:var(--c);box-shadow:0 0 24px var(--c);transform:translateY(-3px) scale(1.04)}
+.verdict{min-height:1.5em;font-weight:600;font-size:19px;margin:12px 0 4px!important}
+.verdict.good{color:#7df0b0}.verdict.bad{color:#ffb09a}
+.stakes{display:flex;flex-direction:column;gap:2px;font-size:16px;margin:0 0 10px!important}
+.stakes .g{color:#7df0b0}.stakes .r{color:#ffb09a}
+.stage2{margin:6px 0}
+.botnote{padding:22px;font-style:italic;color:var(--ink-d);animation:pulse 1s infinite alternate}
+@keyframes pulse{to{opacity:.45}}
+.logcv{position:static;inset:auto;width:100%;max-width:520px;height:auto;aspect-ratio:520/190;border-radius:10px;border:1px solid #5b4a22;display:block;margin:0 auto;touch-action:manipulation;cursor:pointer}
+.jumpbtn{margin-top:12px;width:100%}
+.rinfo{font-family:var(--f-ui);letter-spacing:.08em;margin-bottom:8px;color:var(--gold)}
+.rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:320px;margin:0 auto}
+.rcell{aspect-ratio:1;padding:0;border-radius:12px;background:linear-gradient(145deg,#4a4632,#2a2a1f);box-shadow:inset 0 0 0 2px #6b5a2c,0 3px 0 #0b0a06}
+.rcell.on{background:radial-gradient(circle,#f1ddff 0 14%,#a66cf0 15% 45%,#4a2a86 46%);box-shadow:0 0 22px #b98cff,inset 0 0 0 2px #e4c9ff}
+.rcell.miss{animation:shake .2s}
+.water{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:12px;background:linear-gradient(#0b6a73,#0a4f66);border:1px solid #1f8a8a}
+.stonerow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stone{position:relative;height:54px;padding:0;border-radius:50%/60%;background:linear-gradient(#b3a67f,#6d6246);box-shadow:0 4px 0 #2a2414,inset 0 0 0 2px #8d8160;opacity:.55}
+.stone.now{opacity:1;box-shadow:0 4px 0 #2a2414,inset 0 0 0 2px #8d8160,0 0 14px #8dffc6}
+.stone.safe{opacity:1;background:linear-gradient(#7de8b6,#2fae6e)}
+.stone.chomp{background:linear-gradient(#e0634a,#7a2012)}
+.stone .eyes{position:absolute;left:50%;top:-8px;width:34px;height:10px;transform:translateX(-50%);opacity:0;transition:opacity .15s;
+  background:radial-gradient(circle at 25% 50%,#ffe14a 0 3px,transparent 4px),radial-gradient(circle at 75% 50%,#ffe14a 0 3px,transparent 4px)}
+.stone .eyes.show{opacity:1}
+#fx{position:fixed;inset:0;width:100%;height:100%;z-index:30;pointer-events:none}
+@media (max-width:900px){.stage{grid-template-columns:minmax(0,1fr)}.board-wrap{width:100%}.panel .tablet:nth-child(2){order:-1}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
+</style>
+<div class="app">
+  <header><h1>Jungle Quest</h1><span>The Cursed Board</span></header>
+  <main class="stage">
+    <div class="board-wrap"><canvas id="board" aria-label="Jungle temple game board"></canvas><div id="toast" role="status"></div></div>
+    <aside class="panel">
+      <section class="tablet"><h2>Explorers</h2><div id="players"></div></section>
+      <section class="tablet"><h2>Your Move</h2>
+        <div class="diceRow"><div id="die" aria-label="Die"></div><button id="rollBtn" disabled>Roll the Die</button></div>
+        <p id="say">Start an expedition to begin.</p>
+      </section>
+      <section class="tablet"><h2>Expedition Log</h2><ul id="log"></ul></section>
+      <section class="tablet"><h2>Tiles</h2><div class="legend" id="legend"></div></section>
+      <button class="ghost" id="newBtn">New Expedition</button>
+    </aside>
+  </main>
+</div>
+<div class="ov" id="menu">
+  <div class="card">
+    <h3>The Cursed Board</h3>
+    <p style="margin-top:0;font-size:18px;color:var(--ink-d)">Race through the ruins and be first to claim the emerald at the heart of the temple.</p>
+    <div class="cnt" id="cnt"></div>
+    <div class="setup" id="setup"></div>
+    <ul class="rules">
+      <li>Roll and walk that many tiles. At a fork, tap a glowing tile to choose your way.</li>
+      <li>Land on 3 different purple relic tiles to break the temple seal. Then you can step onto a temple door.</li>
+      <li>Reaching a temple door ends your move and rolls a random event: the door opens (straight to the emerald, you win) or stays shut (you continue around the inner ring).</li>
+      <li>Gold tiles draw a lucky card. Blue tiles ask a riddle. Red tiles are traps.</li>
+      <li>Land exactly on a diamond tile to trigger a random event. Orange diamonds are rope-bridge shortcuts and green diamonds are ways to go inside. Passing over one does nothing.</li>
+      <li>Going inside stays sealed until you have touched all four green diamonds on the outer ring.</li>
+      <li>Land on a rival to send them home. Reach the emerald to win.</li>
+    </ul>
+    <button id="startBtn">Begin Expedition</button>
+  </div>
+</div>
+<div class="ov" id="dlg" hidden><div class="card" id="dlgCard"></div></div>
+<canvas id="fx"></canvas>
+<script>
